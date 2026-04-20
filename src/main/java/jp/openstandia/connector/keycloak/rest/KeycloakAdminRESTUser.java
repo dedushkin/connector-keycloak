@@ -186,6 +186,7 @@ public class KeycloakAdminRESTUser implements KeycloakClient.User {
     private void updatePassword(String realmName, String userId, CredentialRepresentation credential, final Boolean permanent)
             throws InvalidAttributeValueException {
         if (credential == null) {
+            users(realmName).get(userId).executeActionsEmail(List.of("UPDATE_PASSWORD"));
             return;
         }
 
