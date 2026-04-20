@@ -2,6 +2,7 @@
 
 * Using additions from [inalogy/connector-keycloak](https://github.com/inalogy/connector-keycloak) to associate client roles with groups
 * Updated keycloak-admin-client to v. 26.0.7
+* Sending password update email to user
 
 ## Description
 
