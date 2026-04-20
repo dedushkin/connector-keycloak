@@ -76,18 +76,18 @@ public class KeycloakAdminRESTUser implements KeycloakClient.User {
             throws AlreadyExistsException {
         UserRepresentation newUser = toUserRep(schema, createAttributes);
 
+        boolean hasPassword = newUser.getCredentials() != null && !newUser.getCredentials().isEmpty();
+
         CredentialRepresentation credential = null;
         if (configuration.isPasswordResetAPIEnabled()) {
             List<CredentialRepresentation> credentials = newUser.getCredentials();
             if (credentials != null && credentials.size() == 1) {
                 credential = credentials.get(0);
             }
-            // Need to remove credentials when using password reset API for setting the password.
             newUser.setCredentials(null);
         }
 
         List<String> addGroupIds = newUser.getGroups();
-        // Remove groups intentionally because keycloak expects group path list
         newUser.setGroups(null);
 
         Response res = users(realmName).create(newUser);
@@ -99,7 +99,7 @@ public class KeycloakAdminRESTUser implements KeycloakClient.User {
         // Therefore, Keycloak data may be inconsistent if below callings are failed.
         // Although this connector doesn't handle this situation, IDM can retry the update to resolve this inconsistency.
 
-        updatePassword(realmName, uuid, credential, true);
+        updatePassword(realmName, uuid, credential, true, hasPassword);
 
         // Adding groups when creating a user is supported from 9.0.2.
         // https://github.com/keycloak/keycloak/pull/6886
@@ -183,10 +183,13 @@ public class KeycloakAdminRESTUser implements KeycloakClient.User {
         return newUser;
     }
 
-    private void updatePassword(String realmName, String userId, CredentialRepresentation credential, final Boolean permanent)
+    private void updatePassword(String realmName, String userId, CredentialRepresentation credential,
+                                final Boolean permanent, boolean hasPassword)
             throws InvalidAttributeValueException {
         if (credential == null) {
-            users(realmName).get(userId).executeActionsEmail(List.of("UPDATE_PASSWORD"));
+            if (!hasPassword) {
+                users(realmName).get(userId).executeActionsEmail(List.of("UPDATE_PASSWORD"));
+            }
             return;
         }
 
@@ -199,6 +202,7 @@ public class KeycloakAdminRESTUser implements KeycloakClient.User {
             throw ex;
         }
     }
+
 
     @Override
     public void updateUser(KeycloakSchema schema, String realmName, Uid uid, Set<AttributeDelta> modifications,
@@ -345,7 +349,7 @@ public class KeycloakAdminRESTUser implements KeycloakClient.User {
         // Therefore, Keycloak data may be inconsistent if below callings are failed.
         // Although this connector doesn't handle this situation, IDM can retry the update to resolve this inconsistency.
 
-        updatePassword(realmName, current.getId(), credential, true);
+        updatePassword(realmName, current.getId(), credential, true, true);
 
         for (String groupId : addGroupIds) {
             try {
