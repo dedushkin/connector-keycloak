@@ -17,6 +17,10 @@ public class Transformation {
         Map<String, List<RoleRepresentation>> result = new HashMap<>();
         roleList.stream().forEach(r -> {
             String[] roleSplit = r.split(delimiter);
+            if (roleSplit.length <= Math.max(clientIndex, groupIndex)) {
+                LOGGER.warn("Role value ''{0}'' does not contain delimiter ''{1}'' — expected format clientId{1}roleName, skipping", r, delimiter);
+                return;
+            }
             String clientId = roleSplit[clientIndex];
             String roleName = roleSplit[groupIndex];
             if(result.containsKey(clientId)){
